@@ -15,8 +15,8 @@ jobs:
     - name: Login to DockerHub
       uses: docker/login-action@v1
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        username: ${{ secrets.USER }}
+        password: ${{ secrets.PASSWD }}
     
     - name: Build and push Docker images
       env:
@@ -34,7 +34,7 @@ jobs:
         services=(kustomization makeline-service mongodb order-service product-service rabbitmq store-admin store-front virtual-customer)
         for service in "${services[@]}"; do
           if [ -f "./kustomize/base/${service}.yaml" ]; then
-            sed -i 's|image: .*'${service}'.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/'${service}':${{ github.sha }}|' ./kustomize/base/${service}.yaml
+            sed -i 's|image: .*'${service}'.*|image: ${{ secrets.USER }}/'${service}':${{ github.sha }}|' ./kustomize/base/${service}.yaml
           fi
         done
 
