@@ -2,30 +2,46 @@ name: Build and Push gRPC Product Service
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  update-code:
+  build-and-push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v2
+    
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    
+    - name: Build and push Docker images
+      env:
+        DOCKER_USERNAME: ${{ secrets.USER }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        services=(ai-service makeline-service order-service product-service store-admin store-front virtual-customer virtual-worker)
+        for service in "${services[@]}"; do
+          docker build -t $DOCKER_USERNAME/${service}:$IMAGE_TAG ./src/${service}
+          docker push $DOCKER_USERNAME/${service}:$IMAGE_TAG
+        done
+      
+    - name: Update Kubernetes manifests
+      run: |
+        services=(kustomization makeline-service mongodb order-service product-service rabbitmq store-admin store-front virtual-customer)
+        for service in "${services[@]}"; do
+          if [ -f "./kustomize/base/${service}.yaml" ]; then
+            sed -i 's|image: .*'${service}'.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/'${service}':${{ github.sha }}|' ./kustomize/base/${service}.yaml
+          fi
+        done
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./src/product-service
-          file: ./src/product-service/Dockerfile
-          push: true
-          tags: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/aks-store-demo-product-service:latest
+    - name: Commit and push if there are changes
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add .
+        git commit -m "Update image tags" || exit 0
+        git push
