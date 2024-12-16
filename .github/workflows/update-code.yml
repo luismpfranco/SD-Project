@@ -17,13 +17,11 @@ jobs:
         run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build and push Docker images
-        env:
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           services=(ai-service makeline-service order-service product-service store-admin store-front virtual-customer virtual-worker)
           for service in "${services[@]}"; do
-            docker build -t azure-samples/aks-store-demo/${service}:$IMAGE_TAG ./src/${service}
-            docker push azure-samples/aks-store-demo/${service}:$IMAGE_TAG
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/aks-store-demo/${service}:${{ github.sha }} ./src/${service}
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/aks-store-demo/${service}:${{ github.sha }}
           done
 
       - name: Update Kubernetes manifests
