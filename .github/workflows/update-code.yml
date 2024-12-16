@@ -26,8 +26,8 @@ jobs:
         run: |
           services=(ai-service makeline-service order-service product-service store-admin store-front virtual-customer virtual-worker)
           for service in "${services[@]}"; do
-            docker build -t 2083121/azure-samples/aks-store-demo/${service}:latest ./src/${service}
-            docker push 2083121/azure-samples/aks-store-demo/${service}:latest
+            docker build -t 2083121/aks-store-demo/${service}:latest ./src/${service}
+            docker push 2083121/aks-store-demo/${service}:latest
           done
 
       - name: Update Kubernetes manifests
@@ -35,7 +35,7 @@ jobs:
           services=(kustomization makeline-service mongodb order-service product-service rabbitmq store-admin store-front virtual-customer)
           for service in "${services[@]}"; do
             if [ -f "./kustomize/base/${service}.yaml" ]; then
-              sed -i 's|image: .*'${service}'.*|image: 2083121/azure-samples/aks-store-demo/'${service}':latest|' ./kustomize/base/${service}.yaml
+              sed -i 's|image: .*'${service}'.*|image: 2083121/aks-store-demo/'${service}':latest|' ./kustomize/base/${service}.yaml
             fi
           done
 
