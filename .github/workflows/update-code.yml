@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker images
+      - name: Build and push Docker images?
         run: |
           services=(ai-service makeline-service order-service product-service store-admin store-front virtual-customer virtual-worker)
           for service in "${services[@]}"; do
