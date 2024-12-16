@@ -1,4 +1,4 @@
-name: Build and Push gRPC Product Service
+name: Build and Push Docker Images
 
 on:
   push:
@@ -10,20 +10,20 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      - name: Login to GHCR
-        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      # Login no Docker Hub
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Build and push Docker images to GHCR
+      - name: Build and push Docker images
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           services=(ai-service makeline-service order-service product-service store-admin store-front virtual-customer virtual-worker)
           for service in "${services[@]}"; do
-            docker build -t ghcr.io/azure-samples/aks-store-demo/${service}:$IMAGE_TAG ./src/${service}
-            docker push ghcr.io/azure-samples/aks-store-demo/${service}:$IMAGE_TAG
+            docker build -t azure-samples/aks-store-demo/${service}:$IMAGE_TAG ./src/${service}
+            docker push azure-samples/aks-store-demo/${service}:$IMAGE_TAG
           done
 
       - name: Update Kubernetes manifests
@@ -31,7 +31,7 @@ jobs:
           services=(kustomization makeline-service mongodb order-service product-service rabbitmq store-admin store-front virtual-customer)
           for service in "${services[@]}"; do
             if [ -f "./kustomize/base/${service}.yaml" ]; then
-              sed -i 's|image: .*'${service}'.*|image: ghcr.io/azure-samples/aks-store-demo/'${service}':${{ github.sha }}|' ./kustomize/base/${service}.yaml
+              sed -i 's|image: .*'${service}'.*|image: azure-samples/aks-store-demo/'${service}':${{ github.sha }}|' ./kustomize/base/${service}.yaml
             fi
           done
 
