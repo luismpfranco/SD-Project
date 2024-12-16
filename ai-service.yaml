@@ -16,7 +16,7 @@ spec:
         "kubernetes.io/os": linux
       containers:
         - name: ai-service
-          image: 2083121/aks-store-demo:ai-service
+          image: ghcr.io/azure-samples/aks-store-demo/ai-service:latest
           ports:
             - containerPort: 5001
           env:
@@ -41,7 +41,7 @@ spec:
             httpGet:
               path: /health
               port: 5001
-            initialDelaySeconds: 10
+            initialDelaySeconds: 60
             failureThreshold: 3
             periodSeconds: 5
           readinessProbe:
