@@ -26,26 +26,41 @@ class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
     def GetProducts(self, request, context):
         logging.info(f"GetProducts requested. Returning {len(self.products)} products")
         return product_service_pb2.GetProductsResponse(products=self.products)
+    
+    def GetProductById(self, request, context):
+        product = next((p for p in self.products if p.id == request.id), None)
+        if product:
+            return product
+        context.set_code(grpc.StatusCode.NOT_FOUND)
+        context.set_details("Product not found")
+        return product_service_pb2.Product()
 
     def AddProduct(self, request, context):
-        logging.info(f"AddProduct requested for product: {request.product.name}")
-        try:
-            new_product = request.product
-            if not new_product.name or new_product.price <= 0:
-                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                context.set_details("Invalid product data")
-                return product_service_pb2.ProductResponse(success=False, message="Invalid product data")
-            
-            new_product.id = len(self.products) + 1
-            self.products.append(new_product)
-            return product_service_pb2.AddProductResponse(
-                success=True,
-                message=f"Product added with ID: {new_product.id}"
-            )
-        except Exception as e:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"An error occurred: {str(e)}")
-            return product_service_pb2.ProductResponse(success=False, message=f"An error occurred: {str(e)}")
+        new_product = request.product
+        new_product.id = len(self.products) + 1
+        self.products.append(new_product)
+        return product_service_pb2.StandardResponse(
+            success=True,
+            message=f"Product added with ID: {new_product.id}"
+        )
+    
+    def UpdateProduct(self, request, context):
+        product = next((p for p in self.products if p.id == request.product.id), None)
+        if product:
+            product.CopyFrom(request.product)
+            return product
+        context.set_code(grpc.StatusCode.NOT_FOUND)
+        context.set_details("Product not found")
+        return product_service_pb2.Product()
+    
+    def DeleteProduct(self, request, context):
+        product = next((p for p in self.products if p.id == request.id), None)
+        if product:
+            self.products.remove(product)
+            return product_service_pb2.StandardResponse(success=True, message="Product deleted")
+        context.set_code(grpc.StatusCode.NOT_FOUND)
+        context.set_details("Product not found")
+        return product_service_pb2.StandardResponse(success=False, message="Product not found")
 
 def signal_handler(sig, frame):
     logging.info('Você pressionou Ctrl+C! Encerrando o servidor...')

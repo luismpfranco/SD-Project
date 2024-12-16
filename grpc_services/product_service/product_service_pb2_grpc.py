@@ -53,7 +53,7 @@ class ProductServiceStub(object):
         self.AddProduct = channel.unary_unary(
                 '/productservice.ProductService/AddProduct',
                 request_serializer=product__service__pb2.AddProductRequest.SerializeToString,
-                response_deserializer=product__service__pb2.AddProductResponse.FromString,
+                response_deserializer=product__service__pb2.StandardResponse.FromString,
                 _registered_method=True)
         self.UpdateProduct = channel.unary_unary(
                 '/productservice.ProductService/UpdateProduct',
@@ -63,7 +63,7 @@ class ProductServiceStub(object):
         self.DeleteProduct = channel.unary_unary(
                 '/productservice.ProductService/DeleteProduct',
                 request_serializer=product__service__pb2.DeleteProductRequest.SerializeToString,
-                response_deserializer=product__service__pb2.Product.FromString,
+                response_deserializer=product__service__pb2.StandardResponse.FromString,
                 _registered_method=True)
 
 
@@ -128,7 +128,7 @@ def add_ProductServiceServicer_to_server(servicer, server):
             'AddProduct': grpc.unary_unary_rpc_method_handler(
                     servicer.AddProduct,
                     request_deserializer=product__service__pb2.AddProductRequest.FromString,
-                    response_serializer=product__service__pb2.AddProductResponse.SerializeToString,
+                    response_serializer=product__service__pb2.StandardResponse.SerializeToString,
             ),
             'UpdateProduct': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateProduct,
@@ -138,7 +138,7 @@ def add_ProductServiceServicer_to_server(servicer, server):
             'DeleteProduct': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteProduct,
                     request_deserializer=product__service__pb2.DeleteProductRequest.FromString,
-                    response_serializer=product__service__pb2.Product.SerializeToString,
+                    response_serializer=product__service__pb2.StandardResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -249,7 +249,7 @@ class ProductService(object):
             target,
             '/productservice.ProductService/AddProduct',
             product__service__pb2.AddProductRequest.SerializeToString,
-            product__service__pb2.AddProductResponse.FromString,
+            product__service__pb2.StandardResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -303,7 +303,7 @@ class ProductService(object):
             target,
             '/productservice.ProductService/DeleteProduct',
             product__service__pb2.DeleteProductRequest.SerializeToString,
-            product__service__pb2.Product.FromString,
+            product__service__pb2.StandardResponse.FromString,
             options,
             channel_credentials,
             insecure,

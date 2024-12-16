@@ -13,12 +13,7 @@ message Product {
   string image = 5;
 }
 
-message ProductResponse {
-  bool success = 1;
-  string message = 2;
-}
-
-message AddProductResponse {
+message StandardResponse {
   bool success = 1;
   string message = 2;
 }
@@ -55,7 +50,7 @@ service ProductService {
   rpc GetHealth(GetProductsRequest) returns (HealthCheckResponse);
   rpc GetProducts(GetProductsRequest) returns (GetProductsResponse);
   rpc GetProductById(GetProductByIdRequest) returns (Product);
-  rpc AddProduct(AddProductRequest) returns (AddProductResponse);
+  rpc AddProduct(AddProductRequest) returns (StandardResponse);
   rpc UpdateProduct(UpdateProductRequest) returns (Product);
-  rpc DeleteProduct(DeleteProductRequest) returns (Product);
+  rpc DeleteProduct(DeleteProductRequest) returns (StandardResponse);
 }
