@@ -9,10 +9,7 @@ class ProductRepository:
     def load_products(self):
         try:
             with open(self.filename, 'r') as f:
-                products = []
-                for line in f:
-                    products.append(json.loads(line))
-                return products
+                return [json.loads(line.strip()) for line in f if line.strip()]
         except FileNotFoundError:
             return []
 
@@ -20,8 +17,7 @@ class ProductRepository:
     def save_products(self):
         with open(self.filename, 'w') as f:
             for product in self.products:
-                json.dump(product, f, indent=2)
-                f.write('\n')
+                f.write(json.dumps(product) + '\n')
 
 
     def add_product(self, product):
