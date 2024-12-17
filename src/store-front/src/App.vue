@@ -33,7 +33,7 @@ export default {
   },
   methods: {
     getProducts() {
-      fetch("./../../product-service/products.json")
+      fetch("/products.json")
         .then((response) => {
           if (!response.ok) throw new Error("Failed to load products");
           return response.json();
