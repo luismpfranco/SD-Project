@@ -9,7 +9,11 @@ import sys
 from prometheus_client import start_http_server, Counter, Histogram, Gauge
 from product_repository import ProductRepository
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("product-service")
 
 REQUEST_COUNT = Counter('product_service_requests_total', 'Total number of requests to the product service')
 REQUEST_LATENCY = Histogram('product_service_request_latency_seconds', 'Request latency in seconds', ['method'])
@@ -27,6 +31,7 @@ class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
         uptime = time.time() - self.start_time
         UPTIME_GAUGE.set(uptime)
         version = "1.0.0"
+        logger.info(f"HealthCheck called. Uptime: {uptime:.2f} seconds, Version: {version}")
         return product_service_pb2.HealthCheckResponse(
             status=f"ok - Uptime: {uptime:.2f} seconds",
             version=version
@@ -35,60 +40,81 @@ class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
     def GetProducts(self, request, context):
         start_time = time.time()
         REQUEST_COUNT.inc()
+        logger.info("Request received: List all products")
         
         # Simular algum processamento
         time.sleep(0.1)
-
-        latency = time.time() - start_time
-        REQUEST_LATENCY.labels(method='GetProducts').observe(latency)
         
         products = [product_service_pb2.Product(**p) for p in self.repository.get_products()]
-        logging.info(f"GetProducts requested. Returning {len(products)} products")
+        latency = time.time() - start_time
+        REQUEST_LATENCY.labels(method='GetProducts').observe(latency)
+        logger.info(f"GetProducts requested. Returning {len(products)} products. Latency: {latency:.2f} seconds")
         return product_service_pb2.GetProductsResponse(products=products)
 
     def GetProductById(self, request, context):
+        logger.info(f"Request received: Get Product by ID {request.id}")
         product_dict = self.repository.get_product_by_id(request.id)
         if product_dict:
+            logger.info(f"Product found: {product_dict}")
             return product_service_pb2.Product(**product_dict)
         
         ERROR_COUNT.inc()
+        logger.error(f"Producto whit ID {request.id} not found")
         context.set_code(grpc.StatusCode.NOT_FOUND)
         context.set_details("Product not found")
         return product_service_pb2.Product()
 
     def AddProduct(self, request, context):
-        new_product = request.product
-        new_product.id = len(self.repository.get_products()) + 1
+        logger.info(f"Request received. Adding product: {request.name}, Price: {request.price}")
+        new_product = {
+            "id": len(self.repository.get_products()) + 1,
+            "name": request.name,
+            "price": request.price,
+            "description": request.description,
+            "image": request.image
+        }
         self.repository.add_product(new_product)
-        
+        logger.info(f"Product added successfully: ID {new_product['id']}")
         return product_service_pb2.StandardResponse(
             success=True,
-            message=f"Product added with ID: {new_product.id}"
+            message=f"Product added with ID: {new_product['id']}"
         )
 
     def UpdateProduct(self, request, context):
-        updated = self.repository.update_product(request.product)
+        logger.info(f"Request received: Update product ID {request.id}")
+        updated = self.repository.update_product({
+            "id": request.id,
+            "name": request.name,
+            "price": request.price,
+            "description": request.description,
+            "image": request.image
+        })
         if updated:
+            logger.info(f"Product updated: ID {request.id}")
             return request.product
         
         ERROR_COUNT.inc()
+        logger.error(f"Product with ID {request.id} not found for update")
         context.set_code(grpc.StatusCode.NOT_FOUND)
         context.set_details("Product not found")
         return product_service_pb2.Product()
         
     def DeleteProduct(self, request, context):
+        logger.info(f"Request received: Delete product ID {request.id}")
         product = self.repository.get_product_by_id(request.id)
         if product:
             self.repository.delete_product(request.id)
+            logger.info(f"Product deleted successfully: ID {request.id}")
             return product_service_pb2.StandardResponse(success=True, message="Product deleted")
         
         ERROR_COUNT.inc()
+        logger.error(f"Product with ID {request.id} not found for delete")
         context.set_code(grpc.StatusCode.NOT_FOUND)
         context.set_details("Product not found")
         return product_service_pb2.StandardResponse(success=False, message="Product not found")
         
 def signal_handler(sig, frame):
-    logging.info('Você pressionou Ctrl+C! Encerrando o servidor...')
+    logger.info('Você pressionou Ctrl+C! Encerrando o servidor...')
     server.stop(0)
     sys.exit(0)
 
