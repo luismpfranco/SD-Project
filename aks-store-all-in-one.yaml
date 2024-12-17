@@ -316,11 +316,11 @@ spec:
               value: "http://ai-service:5001/"
           resources:
             requests:
-              cpu: 1m
-              memory: 1Mi
+              cpu: "100m"
+              memory: "128Mi"
             limits:
-              cpu: 2m
-              memory: 10Mi
+              cpu: "500m"
+              memory: "256Mi"
           readinessProbe:
             httpGet:
               path: /health
