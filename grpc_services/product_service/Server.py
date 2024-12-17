@@ -7,6 +7,7 @@ import logging
 import signal
 import sys
 from prometheus_client import start_http_server, Counter, Histogram, Gauge
+from product_repository import ProductRepository
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,6 +19,7 @@ UPTIME_GAUGE = Gauge('product_service_uptime_seconds', 'Uptime of the product se
 class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
     def __init__(self):
         self.products = []
+        self.repository = ProductRepository()
         self.start_time = time.time()
         logging.info("ProductServicer initialized")
 
@@ -40,13 +42,14 @@ class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
         latency = time.time() - start_time
         REQUEST_LATENCY.labels(method='GetProducts').observe(latency)
         
-        logging.info(f"GetProducts requested. Returning {len(self.products)} products")
-        return product_service_pb2.GetProductsResponse(products=self.products)
+        products = [product_service_pb2.Product(**p) for p in self.repository.get_products()]
+        logging.info(f"GetProducts requested. Returning {len(products)} products")
+        return product_service_pb2.GetProductsResponse(products=products)
 
     def GetProductById(self, request, context):
-        product = next((p for p in self.products if p.id == request.id), None)
-        if product:
-            return product
+        product_dict = self.repository.get_product_by_id(request.id)
+        if product_dict:
+            return product_service_pb2.Product(**product_dict)
         
         ERROR_COUNT.inc()
         context.set_code(grpc.StatusCode.NOT_FOUND)
@@ -55,8 +58,8 @@ class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
 
     def AddProduct(self, request, context):
         new_product = request.product
-        new_product.id = len(self.products) + 1
-        self.products.append(new_product)
+        new_product.id = len(self.repository.get_products()) + 1
+        self.repository.add_product(new_product)
         
         return product_service_pb2.StandardResponse(
             success=True,
@@ -64,26 +67,25 @@ class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
         )
 
     def UpdateProduct(self, request, context):
-        product = next((p for p in self.products if p.id == request.product.id), None)
-        
-        if product:
-            product.CopyFrom(request.product)
-            return product
+        updated = self.repository.update_product(request.product)
+        if updated:
+            return request.product
         
         ERROR_COUNT.inc()
         context.set_code(grpc.StatusCode.NOT_FOUND)
         context.set_details("Product not found")
+        return product_service_pb2.Product()
         
     def DeleteProduct(self, request, context):
-        product = next((p for p in self.products if p.id == request.id), None)
-        
+        product = self.repository.get_product_by_id(request.id)
         if product:
-            self.products.remove(product)
+            self.repository.delete_product(request.id)
             return product_service_pb2.StandardResponse(success=True, message="Product deleted")
         
         ERROR_COUNT.inc()
         context.set_code(grpc.StatusCode.NOT_FOUND)
         context.set_details("Product not found")
+        return product_service_pb2.StandardResponse(success=False, message="Product not found")
         
 def signal_handler(sig, frame):
     logging.info('Você pressionou Ctrl+C! Encerrando o servidor...')

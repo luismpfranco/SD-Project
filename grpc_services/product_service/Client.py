@@ -54,12 +54,12 @@ def main():
         print(f"Update Product Failed: {e}")
 
     # Eliminar produto
-    print("\nDeleting Product:")
-    try:
-        delete_response = client.DeleteProduct(product_service_pb2.DeleteProductRequest(id=1))
-        print(f"Delete Product Response: {delete_response.message}")
-    except grpc.RpcError as e:
-        print(f"Delete Product Failed: {e}")
+    #print("\nDeleting Product:")
+    #try:
+        #delete_response = client.DeleteProduct(product_service_pb2.DeleteProductRequest(id=1))
+        #print(f"Delete Product Response: {delete_response.message}")
+    #except grpc.RpcError as e:
+     #   print(f"Delete Product Failed: {e}")
 
 if __name__ == "__main__":
     main()
