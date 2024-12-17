@@ -13,7 +13,7 @@ elseif (($env:DEPLOY_AZURE_CONTAINER_REGISTRY -like "true") -and ($env:BUILD_CON
   echo "Import container images"
   foreach ($service in $services) {
     echo "Importing aks-store-demo/${service}:latest"
-    az acr import --name $env:AZURE_REGISTRY_NAME --source ghcr.io/azure-samples/aks-store-demo/${service}:latest --image aks-store-demo/${service}:latest
+    az acr import --name $env:AZURE_REGISTRY_NAME --source 2083121/aks-store-demo:${service} --image aks-store-demo:${service}
   }
 } 
 else {

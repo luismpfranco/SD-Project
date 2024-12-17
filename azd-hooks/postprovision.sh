@@ -12,7 +12,7 @@ elif [ "$DEPLOY_AZURE_CONTAINER_REGISTRY" == "true" ] && ([ -z "$BUILD_CONTAINER
   echo "Import container images"
   for service in "${services[@]}"; do
     echo "Importing aks-store-demo/${service}:latest"
-    az acr import --name ${AZURE_REGISTRY_NAME} --source ghcr.io/azure-samples/aks-store-demo/${service}:latest --image aks-store-demo/${service}:latest
+    az acr import --name ${AZURE_REGISTRY_NAME} --source 2083121/aks-store-demo:${service} --image aks-store-demo:${service}
   done
 else 
   echo "No BUILD_CONTAINERS variable set, skipping container build/import"

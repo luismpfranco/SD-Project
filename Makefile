@@ -64,61 +64,61 @@ provision-azure: ## Provision Azure Resources
 	@if [ "$(BUILD_ORDER_SERVICE)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t order-service:$(IMAGE_VERSION) ./src/order-service; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/order-service:latest --image order-service:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo:order-service --image order-service:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_MAKELINE_SERVICE)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t makeline-service:$(IMAGE_VERSION) ./src/makeline-service; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/makeline-service:latest --image makeline-service:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo:makeline-service --image makeline-service:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_PRODUCT_SERVICE)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t product-service:$(IMAGE_VERSION) ./src/product-service; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/product-service:latest --image product-service:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo:product-service --image product-service:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_STORE_FRONT)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t store-front:$(IMAGE_VERSION) ./src/store-front; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/store-front:latest --image store-front:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo:store-front --image store-front:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_STORE_ADMIN)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t store-admin:$(IMAGE_VERSION) ./src/store-admin; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/store-admin:latest --image store-admin:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121-store-demo/store-admin:latest --image store-admin:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_VIRTUAL_CUSTOMER)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t virtual-customer:$(IMAGE_VERSION) ./src/virtual-customer; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/virtual-customer:latest --image virtual-customer:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo/virtual-customer:latest --image virtual-customer:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_VIRTUAL_WORKER)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t virtual-worker:$(IMAGE_VERSION) ./src/virtual-worker; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/virtual-worker:latest --image virtual-worker:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo/virtual-worker:latest --image virtual-worker:$(IMAGE_VERSION); \
 	fi
 
 	@if [ "$(BUILD_AI_SERVICE)" = true ]; then \
 		az acr build -r $(ACR_NAME) -t ai-service:$(IMAGE_VERSION) ./src/ai-service; \
 	else \
-		az acr import -n $(ACR_NAME) --source ghcr.io/azure-samples/aks-store-demo/ai-service:latest --image ai-service:$(IMAGE_VERSION); \
+		az acr import -n $(ACR_NAME) --source 2083121/aks-store-demo/ai-service:latest --image ai-service:$(IMAGE_VERSION); \
 	fi
 
 .PHONY: deploy-azure
 deploy-azure: kustomize aks-store-all-in-one.yaml ## Deploy to AKS cluster
 	@$(KUSTOMIZE) create --resources aks-store-all-in-one.yaml
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/order-service=$(ACR_NAME).azurecr.io/order-service:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/makeline-service=$(ACR_NAME).azurecr.io/makeline-service:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/product-service=$(ACR_NAME).azurecr.io/product-service:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/store-front=$(ACR_NAME).azurecr.io/store-front:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/store-admin=$(ACR_NAME).azurecr.io/store-admin:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/virtual-customer=$(ACR_NAME).azurecr.io/virtual-customer:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/virtual-worker=$(ACR_NAME).azurecr.io/virtual-worker:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:order-service=$(ACR_NAME).azurecr.io/order-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:makeline-service=$(ACR_NAME).azurecr.io/makeline-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:product-service=$(ACR_NAME).azurecr.io/product-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:store-front=$(ACR_NAME).azurecr.io/store-front:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:store-admin=$(ACR_NAME).azurecr.io/store-admin:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:virtual-customer=$(ACR_NAME).azurecr.io/virtual-customer:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:virtual-worker=$(ACR_NAME).azurecr.io/virtual-worker:$(IMAGE_VERSION)
 	@kubectl apply -k .
 
 .PHONY: deploy-azure-ai
@@ -130,7 +130,7 @@ deploy-azure-ai: deploy-azure kustomize ai-service.yaml ## Deploy ai-service to 
 	@$(KUSTOMIZE) create --resources ai-service.yaml
 
 	@# Set image version
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/ai-service=$(ACR_NAME).azurecr.io/ai-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:ai-service=$(ACR_NAME).azurecr.io/ai-service:$(IMAGE_VERSION)
 
 	@# Set environment variables
 	@echo "USE_AZURE_OPENAI=True" > .env
@@ -171,13 +171,13 @@ load: build kind ## Load all locally built containers into kind cluster
 .PHONY: manifest ## Create kustomization.yaml and set image versions to locally built images
 manifest: kustomize aks-store-all-in-one.yaml
 	@$(KUSTOMIZE) create --resources aks-store-all-in-one.yaml
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/order-service=order-service:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/makeline-service=makeline-service:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/product-service=product-service:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/store-front=store-front:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/store-admin=store-admin:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/virtual-customer=virtual-customer:$(IMAGE_VERSION)
-	@$(KUSTOMIZE) edit set image ghcr.io/azure-samples/aks-store-demo/virtual-worker=virtual-worker:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:order-service=order-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:makeline-service=makeline-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:product-service=product-service:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:store-front=store-front:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:store-admin=store-admin:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:virtual-customer=virtual-customer:$(IMAGE_VERSION)
+	@$(KUSTOMIZE) edit set image 2083121/aks-store-demo:virtual-worker=virtual-worker:$(IMAGE_VERSION)
 
 .PHONY: deploy
 deploy: manifest ## Deploy to cluster
