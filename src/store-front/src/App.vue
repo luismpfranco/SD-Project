@@ -1,5 +1,7 @@
 <template>
   <TopNav :cartItemCount="cartItemCount"/>
+  <div v-if="loading">Loading...</div>
+    <div v-if="error" class="error">{{ error }}</div>
   <router-view
     :products="products"
     :cartItems="cartItems"
@@ -11,6 +13,7 @@
 
 <script>
 import TopNav from './components/TopNav.vue'
+import { getProducts } from './ProductService'
 
 export default {
   name: 'App',
@@ -21,6 +24,8 @@ export default {
     return {
       cartItems: [],
       products: [],
+      loading: false,
+      error: null
     }
   },
   computed: {
@@ -34,17 +39,18 @@ export default {
     this.getProducts()
   },
   methods: {
-    getProducts() {
-      fetch('/products')
-        .then(response => response.json())
-        .then(products => {
-          console.log('success getting proxy products')
-          this.products = products
-        })
-        .catch(error => {
-          console.log(error)
-          alert('Error occurred while fetching products')
-        })
+    async getProducts() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const products = await getProducts();
+        this.products = products;
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+        this.error = `Failed to load products: ${error.message}`;
+      } finally {
+        this.loading = false;
+      }
     },
     addToCart({ productId, quantity }) {
       // check if the product is already in the cart
