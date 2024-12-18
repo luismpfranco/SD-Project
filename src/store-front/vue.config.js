@@ -12,7 +12,21 @@ module.exports = defineConfig({
     host: '0.0.0.0',
     allowedHosts: 'all',
     client: false,
-    webSocketServer: false,    
+    webSocketServer: false, 
+    proxy: {
+      '/products': {
+        target: `${PRODUCT_SERVICE_URL}`,
+        changeOrigin: true,
+        pathRewrite: {
+          '^/products': ''
+        },
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept'
+        }
+      }
+    },   
     setupMiddlewares: (middlewares, devServer) => {
       
       if (!devServer) {
@@ -27,17 +41,17 @@ module.exports = defineConfig({
         res.send({ status: 'ok', version: version})
       })
       
-      devServer.app.get('/products', (_, res) => {
-        fetch(`${PRODUCT_SERVICE_URL}`)
-          .then(response => response.json())
-          .then(products => {
-            res.send(products)
-          })
-          .catch(error => {
-            console.log(error)
-            // alert('Error occurred while fetching products')
-          })
-      });
+      // devServer.app.get('/products', (_, res) => {
+      //   fetch(`${PRODUCT_SERVICE_URL}`)
+      //     .then(response => response.json())
+      //     .then(products => {
+      //       res.send(products)
+      //     })
+      //     .catch(error => {
+      //       console.log(error)
+      //       // alert('Error occurred while fetching products')
+      //     })
+      // });
 
       devServer.app.post('/order', (req, res) => {
         fetch(`${ORDER_SERVICE_URL}`, {
