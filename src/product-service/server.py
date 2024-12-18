@@ -1,140 +1,132 @@
 import grpc
 from concurrent import futures
-import product_service_pb2
-import product_service_pb2_grpc
+import product_pb2
+import product_pb2_grpc
+import os
+import uuid
+import logging
+from typing import Dict, List
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+import threading
+from prometheus_client import start_http_server, Counter, Histogram, Gauge
+import time
+from concurrent import futures
 import time
 import logging
 import signal
 import sys
-from prometheus_client import start_http_server, Counter, Histogram, Gauge
-from product_repository import ProductRepository
+from data import INITIAL_PRODUCTS
 
+# Configure logging
 logging.basicConfig(
-    level=logging.INFO, 
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("product-service")
 
 REQUEST_COUNT = Counter('product_service_requests_total', 'Total number of requests to the product service')
 REQUEST_LATENCY = Histogram('product_service_request_latency_seconds', 'Request latency in seconds', ['method'])
 ERROR_COUNT = Counter('product_service_errors_total', 'Total number of errors in the product service')
 UPTIME_GAUGE = Gauge('product_service_uptime_seconds', 'Uptime of the product service in seconds')
 
-class ProductServicer(product_service_pb2_grpc.ProductServiceServicer):
-    def __init__(self):
-        self.products = []
-        self.repository = ProductRepository()
-        self.start_time = time.time()
-        logging.info("ProductServicer initialized")
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            health_response = {
+                "status": "ok",
+                "version": os.getenv("APP_VERSION", "0.1.0")
+            }
+            self.wfile.write(json.dumps(health_response).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
 
-    def GetHealth(self, request, context):
-        uptime = time.time() - self.start_time
-        UPTIME_GAUGE.set(uptime)
-        version = "1.0.0"
-        logger.info(f"HealthCheck called. Uptime: {uptime:.2f} seconds, Version: {version}")
-        return product_service_pb2.HealthCheckResponse(
-            status=f"ok - Uptime: {uptime:.2f} seconds",
-            version=version
-        )
+class ProductServicer(product_pb2_grpc.ProductServiceServicer):
+    def __init__(self):
+        self.products: Dict[str, product_pb2.Product] = {}
+        # Load initial products
+        for product_data in INITIAL_PRODUCTS:
+            product = product_pb2.Product(**product_data)
+            self.products[product.id] = product
+        logging.info(f"Initialized with {len(self.products)} products")
 
     def GetProducts(self, request, context):
+        logging.info("Received GetProducts request")
         start_time = time.time()
         REQUEST_COUNT.inc()
-        logger.info("Request received: List all products")
-        
         # Simular algum processamento
         time.sleep(0.1)
-        
-        products = [product_service_pb2.Product(**p) for p in self.repository.get_products()]
         latency = time.time() - start_time
         REQUEST_LATENCY.labels(method='GetProducts').observe(latency)
-        logger.info(f"GetProducts requested. Returning {len(products)} products. Latency: {latency:.2f} seconds")
-        return product_service_pb2.GetProductsResponse(products=products)
+        logging.info(f"GetProducts requested. Returning {len(self.products)} products. Latency: {latency:.2f} seconds")
+        return product_pb2.ProductList(products=list(self.products.values()))
 
-    def GetProductById(self, request, context):
-        logger.info(f"Request received: Get Product by ID {request.id}")
-        product_dict = self.repository.get_product_by_id(request.id)
-        if product_dict:
-            logger.info(f"Product found: {product_dict}")
-            return product_service_pb2.Product(**product_dict)
-        
-        ERROR_COUNT.inc()
-        logger.error(f"Producto whit ID {request.id} not found")
-        context.set_code(grpc.StatusCode.NOT_FOUND)
-        context.set_details("Product not found")
-        return product_service_pb2.Product()
+    def GetProduct(self, request, context):
+        logging.info(f"Received GetProduct request for ID: {request.id}")
+        if request.id not in self.products:
+            logging.warning(f"Product not found: {request.id}")
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('Product not found')
+            return product_pb2.Product()
+        return self.products[request.id]
 
-    def AddProduct(self, request, context):
-        logger.info(f"Request received. Adding product: {request.name}, Price: {request.price}")
-        new_product = {
-            "id": len(self.repository.get_products()) + 1,
-            "name": request.name,
-            "price": request.price,
-            "description": request.description,
-            "image": request.image
-        }
-        self.repository.add_product(new_product)
-        logger.info(f"Product added successfully: ID {new_product['id']}")
-        return product_service_pb2.StandardResponse(
-            success=True,
-            message=f"Product added with ID: {new_product['id']}"
+    def CreateProduct(self, request, context):
+        product_id = str(uuid.uuid4())
+        product = product_pb2.Product(
+            id=product_id,
+            name=request.name,
+            description=request.description,
+            price=request.price,
+            image_url=request.image_url,
+            available=request.available
         )
+        self.products[product_id] = product
+        return product
 
     def UpdateProduct(self, request, context):
-        logger.info(f"Request received: Update product ID {request.id}")
-        updated = self.repository.update_product({
-            "id": request.id,
-            "name": request.name,
-            "price": request.price,
-            "description": request.description,
-            "image": request.image
-        })
-        if updated:
-            logger.info(f"Product updated: ID {request.id}")
-            return request.product
-        
-        ERROR_COUNT.inc()
-        logger.error(f"Product with ID {request.id} not found for update")
-        context.set_code(grpc.StatusCode.NOT_FOUND)
-        context.set_details("Product not found")
-        return product_service_pb2.Product()
-        
+        if request.id not in self.products:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('Product not found')
+            return product_pb2.Product()
+        self.products[request.id] = request
+        return request
+
     def DeleteProduct(self, request, context):
-        logger.info(f"Request received: Delete product ID {request.id}")
-        product = self.repository.get_product_by_id(request.id)
-        if product:
-            self.repository.delete_product(request.id)
-            logger.info(f"Product deleted successfully: ID {request.id}")
-            return product_service_pb2.StandardResponse(success=True, message="Product deleted")
-        
-        ERROR_COUNT.inc()
-        logger.error(f"Product with ID {request.id} not found for delete")
-        context.set_code(grpc.StatusCode.NOT_FOUND)
-        context.set_details("Product not found")
-        return product_service_pb2.StandardResponse(success=False, message="Product not found")
-        
+        if request.id not in self.products:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('Product not found')
+            return product_pb2.Empty()
+        del self.products[request.id]
+        return product_pb2.Empty()
+    
 def signal_handler(sig, frame):
-    logger.info('Você pressionou Ctrl+C! Encerrando o servidor...')
+    logging.info('Você pressionou Ctrl+C! Encerrando o servidor...')
     server.stop(0)
     sys.exit(0)
 
 def serve():
-    start_http_server(8000)
-    global server
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    product_service_pb2_grpc.add_ProductServiceServicer_to_server(ProductServicer(), server)
-    server.add_insecure_port('[::]:50051')
-    server.start()
-    
-    logging.info("Servidor iniciado. Ouvindo na porta 50051.")
-    
-    signal.signal(signal.SIGINT, signal_handler)
+    # Start health check server on port 3003
+    health_port = int(os.getenv('HEALTH_PORT', '3003'))
+    health_server = HTTPServer(('', health_port), HealthCheckHandler)
+    health_thread = threading.Thread(target=health_server.serve_forever)
+    health_thread.daemon = True
+    health_thread.start()
+    logging.info(f"Health check server started on port {health_port}")
 
-    try:
-       server.wait_for_termination()
-    except KeyboardInterrupt:
-       logging.info("Interrupção de teclado recebida. Encerrando o servidor...")
-       server.stop(0)
+    # Start gRPC server on port 3002
+    grpc_port = int(os.getenv('GRPC_PORT', '3002'))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    product_pb2_grpc.add_ProductServiceServicer_to_server(
+        ProductServicer(), server
+    )
+    server.add_insecure_port(f'[::]:{grpc_port}')
+    server.start()
+    logging.info(f"gRPC Server started on port {grpc_port}")
+    server.wait_for_termination()
+
 
 if __name__ == '__main__':
-   serve()
+    serve()

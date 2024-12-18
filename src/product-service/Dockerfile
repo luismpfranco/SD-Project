@@ -1,20 +1,19 @@
-# Usar uma imagem base do Python
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-# Install the necessary dependencies
-RUN pip install grpcio grpcio-tools
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the service files
 COPY . /app
 
-# Set the working directory
-WORKDIR /app
+RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. product.proto
 
-# Instalar as dependências necessárias diretamente
-RUN pip install --no-cache-dir grpcio grpcio-tools prometheus_client
+EXPOSE 3002 3003
 
-# Expor a porta que o gRPC usará
-EXPOSE 50051
+ENV PYTHONUNBUFFERED=1
+ENV GRPC_PORT=3002
+ENV HEALTH_PORT=3003
 
-# Comando para iniciar o servidor gRPC
 CMD ["python", "server.py"]
