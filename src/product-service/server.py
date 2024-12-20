@@ -105,10 +105,10 @@ def serve():
     global server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     product_service_pb2_grpc.add_ProductServiceServicer_to_server(ProductServicer(), server)
-    server.add_insecure_port('[::]:50051')
+    server.add_insecure_port('[::]:3002')
     server.start()
 
-    logging.info("Servidor iniciado. Ouvindo na porta 50051.")
+    logging.info("Servidor iniciado. Ouvindo na porta 3002.")
 
     signal.signal(signal.SIGINT, signal_handler)
 

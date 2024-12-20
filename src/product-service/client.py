@@ -5,7 +5,7 @@ import random
 
 def main():
     # Conectar ao servidor gRPC
-    channel = grpc.insecure_channel('localhost:50051')
+    channel = grpc.insecure_channel('localhost:3002')
     client = product_service_pb2_grpc.ProductServiceStub(channel)
 
     # Testar o HealthCheck
