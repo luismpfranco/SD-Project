@@ -57,5 +57,3 @@ class ProductRepository:
         if product_dict:
             return product_dict  # Retorna o dicionário diretamente
         return None
-
-
